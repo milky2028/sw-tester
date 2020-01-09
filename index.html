@@ -10,9 +10,15 @@
     <img src="./homer.png" />
     <script type="module">
       if ('serviceWorker' in navigator) {
-        const sw = navigator.serviceWorker;
-        sw.register('./sw.js').then((res) => {
-          window.skipWaiting = () => navigator.serviceWorker.controller.postMessage('skipWaiting');
+        // Wait until the main document has been loaded to start caching stuff
+        // For Vue, this might be onMounted()
+        window.addEventListener('load', async () => {
+          const reg = await navigator.serviceWorker.register('./sw.js');
+          setInterval(() => {
+            // Check for a new service worker hourly
+            console.log('Checking for update...');
+            reg.update();
+          }, 1800000);
         });
       }
     </script>

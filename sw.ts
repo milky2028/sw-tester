@@ -1,51 +1,53 @@
-console.log('sw registered');
 import version from './version';
 import resources from './resources';
-
 declare var self: ServiceWorkerGlobalScope;
 
 const staticCache = `static-${version}`;
-// const disallowedUrls = ['.pdf'];
-
 self.addEventListener('install', (installEvent) => {
   installEvent.waitUntil(
     (async () => {
+      // Cache an essential group of items on load
       const cache = await caches.open(staticCache);
-      return await cache.addAll(resources);
+      return cache.addAll(resources);
+    })()
+  );
+});
+
+self.addEventListener('activate', (activationEvent) => {
+  activationEvent.waitUntil(
+    (async () => {
+      // Delete old caches when a new service worker is activated
+      const cachesToDelete = (await self.caches.keys())
+        .filter((c) => c !== staticCache)
+        .map((cache) => self.caches.delete(cache));
+
+      return Promise.all(cachesToDelete);
     })()
   );
 });
 
 self.addEventListener('fetch', (fetchEvent) => {
-  const req = fetchEvent.request;
-  if (req.method !== 'GET') {
+  if (fetchEvent.request.method !== 'GET') {
     return;
   } else {
     fetchEvent.respondWith(
       (async () => {
-        const cachedResponse = await self.caches.match(req, {
+        const cache = await self.caches.open(staticCache);
+        const cachedResponse = await cache.match(fetchEvent.request, {
           ignoreSearch: true,
           ignoreVary: true
         });
 
         if (cachedResponse) {
-          console.log(cachedResponse);
+          // If the response exists in the cache, serve it.
           return cachedResponse;
         } else {
-          const cache = await self.caches.open(staticCache);
-          // @ts-ignore;
-          const [_, url] = req.url.split('8887');
-          cache.add(url);
-          console.log(req);
-          return fetch(req);
+          // Else, fetch all other requests and put them in the cache after they've been fetched.
+          const response = await fetch(fetchEvent.request);
+          cache.put(fetchEvent.request, response.clone());
+          return response;
         }
       })()
     );
-  }
-});
-
-self.addEventListener('message', (msg) => {
-  if (msg.data === 'skipWaiting') {
-    self.skipWaiting();
   }
 });
