@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "yarn type-check && rollup -c rollup-config.js",
+    "build": "yarn type-check && rollup -c rollup.config.js",
     "type-check": "tsc --noEmit"
   },
   "repository": {
