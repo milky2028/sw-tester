@@ -25,7 +25,7 @@ export default {
     }),
     terser({
       output: {
-        comments: () => false
+        comments: false
       }
     })
   ]
